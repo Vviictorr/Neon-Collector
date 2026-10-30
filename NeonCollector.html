@@ -77,7 +77,30 @@
   <div id="loader" class="fixed inset-0 z-50 bg-[#050510] flex items-center justify-center text-cyan-400 font-mono transition-opacity duration-500">
     <div class="animate-pulse flex flex-col items-center gap-4">
       <div class="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(0,229,255,0.6)]"></div>
-      Conectando con la Base de Datos...
+      Conectando...
+    </div>
+  </div>
+
+  <!-- PANTALLA DE AUTENTICACIÓN -->
+  <div id="auth-container" class="hidden-force fixed inset-0 z-40 bg-[#050510]/90 glass-modal flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+    <div class="w-full max-w-md bg-[#0f172a]/90 border border-white/20 shadow-[0_0_50px_rgba(168,85,247,0.15)] p-8 rounded-2xl relative overflow-hidden">
+      <!-- Glow effect -->
+      <div class="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/20 blur-[50px] rounded-full pointer-events-none"></div>
+      <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-cyan-500/20 blur-[50px] rounded-full pointer-events-none"></div>
+      
+      <div class="relative z-10 text-center mb-8">
+        <h2 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 tracking-tight text-shadow-neon mb-2">NEON COLLECTOR</h2>
+        <p class="text-gray-400 text-sm">Colección global. Progreso individual.</p>
+      </div>
+
+      <form id="auth-form" class="relative z-10 flex flex-col gap-4">
+        <input id="auth-email" type="email" required placeholder="Correo electrónico" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all" />
+        <input id="auth-pass" type="password" required placeholder="Contraseña (mínimo 6 caracteres)" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all" />
+        <p id="auth-error" class="text-red-400 text-sm hidden"></p>
+        
+        <button type="submit" id="btn-login" class="mt-2 w-full bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-black font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all">Iniciar Sesión</button>
+        <button type="button" id="btn-register" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 rounded-xl border border-white/10 transition-all">Crear Nueva Cuenta</button>
+      </form>
     </div>
   </div>
 
@@ -90,17 +113,28 @@
         <h1 class="text-3xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500 tracking-tight text-shadow-neon">
           NEON COLLECTOR
         </h1>
-        <p class="text-xs md:text-sm text-gray-400 mt-1 uppercase tracking-widest">Base de Datos Activa</p>
+        <p class="text-xs md:text-sm text-gray-400 mt-1 uppercase tracking-widest">Base de Datos Global</p>
       </div>
       
-      <!-- Botón de Instalación PWA (Oculto por defecto) -->
-      <button 
-        id="install-btn"
-        class="hidden-force items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600/80 to-cyan-500/80 hover:from-purple-500 hover:to-cyan-400 border border-white/20 rounded-xl text-white font-bold shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:shadow-[0_0_25px_rgba(0,229,255,0.7)] transition-all animate-pulse"
-      >
-        <i class="ph ph-download-simple text-lg"></i>
-        <span class="text-sm">Instalar App</span>
-      </button>
+      <div class="flex items-center gap-3">
+        <!-- Info Usuario -->
+        <div id="user-info" class="hidden-force flex-col items-end text-sm">
+          <span class="text-gray-400 text-[10px] uppercase tracking-wider">Conectado</span>
+          <span id="user-email" class="text-cyan-400 font-medium"></span>
+        </div>
+        <button id="logout-btn" onclick="window.logout()" class="hidden-force p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]" title="Cerrar Sesión">
+          <i class="ph ph-sign-out text-xl"></i>
+        </button>
+
+        <!-- Botón de Instalación PWA (Oculto por defecto) -->
+        <button 
+          id="install-btn"
+          class="hidden-force items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600/80 to-cyan-500/80 hover:from-purple-500 hover:to-cyan-400 border border-white/20 rounded-xl text-white font-bold shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:shadow-[0_0_25px_rgba(0,229,255,0.7)] transition-all animate-pulse"
+        >
+          <i class="ph ph-download-simple text-lg"></i>
+          <span class="text-sm hidden sm:inline">Instalar</span>
+        </button>
+      </div>
     </header>
 
     <!-- Contenido Dinámico (Se inyecta por JS) -->
@@ -179,7 +213,7 @@
   <script type="module">
     // Importaciones de Firebase v11 (ES Modules para navegador estático)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // Tu configuración exacta de Firebase
@@ -203,32 +237,97 @@
       collections: [],
       sections: [],
       items: [],
+      ownedItems: new Set(), // Set de IDs de objetos que posee el usuario actual
       activeCollectionId: null,
       filterMode: 'all', // 'all', 'owned', 'missing'
       deleteTarget: null, // { type, id, name }
-      targetSectionId: null // Para saber dónde añadir el item nuevo
+      targetSectionId: null, // Para saber dónde añadir el item nuevo
+      listeners: [] // Guardar desuscripciones
     };
 
     // Inicialización y Autenticación
     async function initApp() {
-      try {
-        // Intentamos iniciar sesión anónima
-        const userCredential = await signInAnonymously(auth);
-        window.appState.user = userCredential.user;
-      } catch (error) {
-        console.warn("Advertencia: Inicio de sesión Anónimo no habilitado. Usando usuario temporal.", error);
-        // Fallback: Si no has activado "Anónimo" en Firebase Auth,
-        // usamos un ID local para que la app no se bloquee y puedas ver el diseño.
-        window.appState.user = { uid: 'usuario_local_temporal' };
-      }
-      
-      // Ocultar Loader, Mostrar App siempre (haya funcionado Auth o entrado el Fallback)
-      document.getElementById('loader').classList.add('hidden-force');
-      document.getElementById('app-container').classList.remove('hidden-force');
+      // Listener de cambio de estado de Auth
+      onAuthStateChanged(auth, (user) => {
+        const loader = document.getElementById('loader');
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const userInfo = document.getElementById('user-info');
+        const logoutBtn = document.getElementById('logout-btn');
 
-      setupDatabaseListeners();
+        loader.classList.add('hidden-force');
+
+        if (user) {
+          // Sesión activa
+          window.appState.user = user;
+          authContainer.classList.add('hidden-force');
+          appContainer.classList.remove('hidden-force');
+          
+          userInfo.classList.remove('hidden-force');
+          userInfo.classList.add('flex');
+          logoutBtn.classList.remove('hidden-force');
+          document.getElementById('user-email').innerText = user.email || 'Anónimo';
+
+          setupDatabaseListeners();
+        } else {
+          // No hay sesión
+          window.appState.user = null;
+          clearDatabaseListeners();
+          
+          authContainer.classList.remove('hidden-force');
+          appContainer.classList.add('hidden-force');
+          userInfo.classList.add('hidden-force');
+          userInfo.classList.remove('flex');
+          logoutBtn.classList.add('hidden-force');
+        }
+      });
+
       setupPWA();
     }
+
+    // Configuración de Auth UI
+    const authForm = document.getElementById('auth-form');
+    const authEmail = document.getElementById('auth-email');
+    const authPass = document.getElementById('auth-pass');
+    const authError = document.getElementById('auth-error');
+    const btnRegister = document.getElementById('btn-register');
+
+    // Iniciar Sesión (Formulario)
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.classList.add('hidden');
+      try {
+        document.getElementById('loader').classList.remove('hidden-force');
+        await signInWithEmailAndPassword(auth, authEmail.value, authPass.value);
+      } catch (err) {
+        document.getElementById('loader').classList.add('hidden-force');
+        authError.innerText = "Error: Verifica tu correo y contraseña.";
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Registrar nueva cuenta
+    btnRegister.addEventListener('click', async () => {
+      if(!authEmail.value || !authPass.value) {
+        authError.innerText = "Por favor, introduce correo y contraseña.";
+        authError.classList.remove('hidden');
+        return;
+      }
+      authError.classList.add('hidden');
+      try {
+        document.getElementById('loader').classList.remove('hidden-force');
+        await createUserWithEmailAndPassword(auth, authEmail.value, authPass.value);
+      } catch (err) {
+        document.getElementById('loader').classList.add('hidden-force');
+        authError.innerText = "Error al crear cuenta. (La contraseña debe tener al menos 6 caracteres o el correo ya existe)";
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Cerrar sesión
+    window.logout = async () => {
+      await signOut(auth);
+    };
 
     // Configuración de la PWA dinámica
     function setupPWA() {
@@ -268,27 +367,51 @@
       });
     }
 
+    function clearDatabaseListeners() {
+      window.appState.listeners.forEach(unsub => unsub());
+      window.appState.listeners = [];
+      window.appState.collections = [];
+      window.appState.sections = [];
+      window.appState.items = [];
+      window.appState.ownedItems.clear();
+    }
+
     // Suscripciones a Firebase en Tiempo Real
     function setupDatabaseListeners() {
+      clearDatabaseListeners();
       const uid = window.appState.user.uid;
-      const colRef = collection(db, 'artifacts', appId, 'users', uid, 'collections');
-      const secRef = collection(db, 'artifacts', appId, 'users', uid, 'sections');
-      const itmRef = collection(db, 'artifacts', appId, 'users', uid, 'items');
+      
+      // Colecciones Públicas (Compartidas por todos)
+      const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'collections');
+      const secRef = collection(db, 'artifacts', appId, 'public', 'data', 'sections');
+      const itmRef = collection(db, 'artifacts', appId, 'public', 'data', 'items');
+      
+      // Progreso Privado (Solo de este usuario)
+      const ownedRef = collection(db, 'artifacts', appId, 'users', uid, 'owned_items');
 
-      onSnapshot(colRef, (snap) => {
+      const u1 = onSnapshot(colRef, (snap) => {
         window.appState.collections = snap.docs.map(d => ({id: d.id, ...d.data()}));
         renderApp();
       }, (e) => console.error("Error cols:", e));
 
-      onSnapshot(secRef, (snap) => {
+      const u2 = onSnapshot(secRef, (snap) => {
         window.appState.sections = snap.docs.map(d => ({id: d.id, ...d.data()}));
         renderApp();
       }, (e) => console.error("Error secs:", e));
 
-      onSnapshot(itmRef, (snap) => {
+      const u3 = onSnapshot(itmRef, (snap) => {
         window.appState.items = snap.docs.map(d => ({id: d.id, ...d.data()}));
         renderApp();
       }, (e) => console.error("Error items:", e));
+
+      const u4 = onSnapshot(ownedRef, (snap) => {
+        const owned = new Set();
+        snap.docs.forEach(d => owned.add(d.id));
+        window.appState.ownedItems = owned;
+        renderApp();
+      }, (e) => console.error("Error owned:", e));
+
+      window.appState.listeners.push(u1, u2, u3, u4);
     }
 
     // Funciones de Escape HTML por seguridad
@@ -311,13 +434,13 @@
 
     // Generar Vista 1: Lista de Colecciones
     function generateCollectionsHTML() {
-      const { collections, items } = window.appState;
+      const { collections, items, ownedItems } = window.appState;
       
       let html = `
         <div class="animate-in fade-in duration-500">
           <div class="flex justify-between items-center mb-8">
             <h2 class="text-xl md:text-2xl font-semibold text-white flex items-center gap-2">
-              <i class="ph-fill ph-folder-open text-cyan-400"></i> Mis Colecciones
+              <i class="ph-fill ph-folder-open text-cyan-400"></i> Colecciones Globales
             </h2>
             <button onclick="openModal('modal-collection')" class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/50 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,229,255,0.3)] text-sm md:text-base">
               <i class="ph ph-plus font-bold"></i> <span class="hidden sm:inline">Nueva Colección</span>
@@ -329,15 +452,16 @@
         html += `
           <div class="text-center py-20 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm shadow-[inset_0_0_50px_rgba(255,255,255,0.02)]">
             <i class="ph ph-folder-open text-6xl text-cyan-500/30 mb-4 inline-block"></i>
-            <p class="text-gray-300 text-lg font-medium">Aún no tienes colecciones.</p>
-            <p class="text-sm text-gray-500 mt-2">Crea la primera para empezar tu inventario.</p>
+            <p class="text-gray-300 text-lg font-medium">Aún no hay colecciones en la base de datos.</p>
+            <p class="text-sm text-gray-500 mt-2">Crea la primera para que todos puedan empezar su inventario.</p>
           </div>
         `;
       } else {
         html += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">`;
         collections.forEach(col => {
           const colItems = items.filter(i => i.collectionId === col.id);
-          const ownedCount = colItems.filter(i => i.isOwned).length;
+          // Calculamos el progreso usando el Set de ownedItems privado del usuario
+          const ownedCount = colItems.filter(i => ownedItems.has(i.id)).length;
           const progress = colItems.length > 0 ? (ownedCount / colItems.length) * 100 : 0;
           
           html += `
@@ -352,8 +476,8 @@
               </div>
 
               <div class="mt-auto flex justify-between items-end text-sm">
-                <span class="text-gray-400 bg-white/5 px-2 py-1 rounded-md">${colItems.length} Objetos</span>
-                <span class="text-cyan-400 font-mono font-bold tracking-wider">${Math.round(progress)}%</span>
+                <span class="text-gray-400 bg-white/5 px-2 py-1 rounded-md">${colItems.length} Objetos Globales</span>
+                <span class="text-cyan-400 font-mono font-bold tracking-wider">${Math.round(progress)}% Tienes</span>
               </div>
             </div>
           `;
@@ -367,16 +491,15 @@
 
     // Generar Vista 2: Detalle de Colección
     function generateCollectionDetailHTML() {
-      const { collections, sections, items, activeCollectionId, filterMode } = window.appState;
+      const { collections, sections, items, ownedItems, activeCollectionId, filterMode } = window.appState;
       const activeCol = collections.find(c => c.id === activeCollectionId);
-      if(!activeCol) { window.appState.activeCollectionId = null; return ''; } // fallback
+      if(!activeCol) { window.appState.activeCollectionId = null; return ''; }
 
       const colSections = sections.filter(s => s.collectionId === activeCollectionId);
       
-      // Filtrar items globalmente para esta vista
       let filteredItems = items.filter(i => i.collectionId === activeCollectionId);
-      if (filterMode === 'owned') filteredItems = filteredItems.filter(i => i.isOwned);
-      if (filterMode === 'missing') filteredItems = filteredItems.filter(i => !i.isOwned);
+      if (filterMode === 'owned') filteredItems = filteredItems.filter(i => ownedItems.has(i.id));
+      if (filterMode === 'missing') filteredItems = filteredItems.filter(i => !ownedItems.has(i.id));
 
       let html = `
         <div class="animate-in slide-in-from-right-8 duration-300">
@@ -389,12 +512,12 @@
               </button>
               <div>
                 <h2 class="text-2xl md:text-3xl font-bold text-white">${esc(activeCol.name)}</h2>
-                <p class="text-sm text-gray-400 mt-1">Explorando inventario</p>
+                <p class="text-sm text-gray-400 mt-1">Base de Datos Global</p>
               </div>
             </div>
             
             <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-              <!-- Filtros -->
+              <!-- Filtros (Aplican al progreso del usuario) -->
               <div class="flex bg-black/60 border border-white/10 rounded-xl p-1 backdrop-blur-md w-full sm:w-auto">
                 <button onclick="setFilter('all')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterMode === 'all' ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 shadow-[0_0_15px_rgba(0,229,255,0.1)]' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'}">Todos</button>
                 <button onclick="setFilter('owned')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterMode === 'owned' ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 text-cyan-300 shadow-[0_0_15px_rgba(0,229,255,0.1)]' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent'}">Tengo</button>
@@ -413,7 +536,7 @@
         html += `
           <div class="text-center py-20 bg-[#101018]/50 border border-dashed border-white/10 rounded-3xl">
             <p class="text-gray-300 font-medium text-lg">Esta colección está vacía.</p>
-            <p class="text-sm text-gray-500 mt-2">Crea una sección (ej. "Ediciones Limitadas") para clasificar tus objetos.</p>
+            <p class="text-sm text-gray-500 mt-2">Crea una sección (ej. "Ediciones Limitadas") para clasificar los objetos.</p>
           </div>
         `;
       } else {
@@ -422,7 +545,7 @@
           const sectionItems = filteredItems.filter(i => i.sectionId === section.id);
           const totalSectionItems = items.filter(i => i.sectionId === section.id).length;
           
-          if (sectionItems.length === 0 && filterMode !== 'all' && totalSectionItems > 0) return; // Si estamos filtrando y esta sección queda vacía, la ocultamos.
+          if (sectionItems.length === 0 && filterMode !== 'all' && totalSectionItems > 0) return;
 
           html += `
             <div class="relative">
@@ -437,11 +560,11 @@
                 </div>
                 
                 <div class="flex gap-2">
-                   <button onclick="promptDelete('section', '${section.id}', '${esc(section.name)}')" class="p-2 flex items-center gap-2 text-gray-500 hover:text-red-400 transition-colors bg-white/5 hover:bg-red-500/10 rounded-lg border border-transparent hover:border-red-500/30" title="Borrar Sección">
+                   <button onclick="promptDelete('section', '${section.id}', '${esc(section.name)}')" class="p-2 flex items-center gap-2 text-gray-500 hover:text-red-400 transition-colors bg-white/5 hover:bg-red-500/10 rounded-lg border border-transparent hover:border-red-500/30" title="Borrar Sección Global">
                     <i class="ph ph-trash"></i>
                   </button>
                   <button onclick="openAddItem('${section.id}')" class="px-3 py-2 flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg border border-cyan-500/20 hover:border-cyan-400/50 shadow-[0_0_10px_rgba(0,229,255,0.1)] font-medium text-sm">
-                    <i class="ph ph-plus font-bold"></i> Añadir Objeto
+                    <i class="ph ph-plus font-bold"></i> Añadir Objeto Global
                   </button>
                 </div>
               </div>
@@ -457,7 +580,9 @@
             html += `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">`;
             sectionItems.forEach(item => {
               
-              const isOwnedClasses = item.isOwned 
+              const isOwned = ownedItems.has(item.id);
+
+              const isOwnedClasses = isOwned 
                 ? 'bg-[#101525] border-cyan-400/60 shadow-[0_0_20px_rgba(0,229,255,0.2)] hover:shadow-[0_0_35px_rgba(0,229,255,0.4)] hover:-translate-y-2' 
                 : 'bg-black/60 border-white/10 grayscale-[0.9] opacity-60 hover:grayscale-0 hover:opacity-100 hover:-translate-y-1';
               
@@ -469,15 +594,15 @@
                     <div class="mt-4 w-12 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"></div>
                    </div>`;
                    
-              const checkIcon = item.isOwned 
+              const checkIcon = isOwned 
                 ? `<div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-500 bg-cyan-400/20 border-cyan-400 text-cyan-400 shadow-[0_0_20px_rgba(0,229,255,0.6)] scale-110"><i class="ph-fill ph-check-circle text-xl drop-shadow-lg"></i></div>`
                 : `<div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-500 bg-black/60 border-gray-600 text-gray-600 group-hover:border-cyan-400/40 group-hover:text-cyan-400/40"><i class="ph ph-circle text-xl"></i></div>`;
 
-              const gradientBg = item.isOwned ? 'from-[#050510] via-[#050510]/80 to-transparent' : 'from-black via-black/90 to-transparent';
-              const textTitleCol = item.isOwned ? 'text-white drop-shadow-md' : 'text-gray-400';
+              const gradientBg = isOwned ? 'from-[#050510] via-[#050510]/80 to-transparent' : 'from-black via-black/90 to-transparent';
+              const textTitleCol = isOwned ? 'text-white drop-shadow-md' : 'text-gray-400';
 
               html += `
-                <div onclick="toggleItem('${item.id}', ${item.isOwned})" class="item-card relative group rounded-2xl overflow-hidden cursor-pointer border backdrop-blur-sm aspect-[2/3] flex flex-col ${isOwnedClasses}">
+                <div onclick="toggleItem('${item.id}', ${isOwned})" class="item-card relative group rounded-2xl overflow-hidden cursor-pointer border backdrop-blur-sm aspect-[2/3] flex flex-col ${isOwnedClasses}">
                   <!-- Contenedor Imagen -->
                   <div class="flex-1 relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
                     ${imgContent}
@@ -495,8 +620,8 @@
                     ${checkIcon}
                   </div>
 
-                  <!-- Botón Eliminar -->
-                  <button onclick="event.stopPropagation(); promptDelete('item', '${item.id}', '${esc(item.name)}')" class="absolute top-3 left-3 z-30 w-8 h-8 rounded-full bg-red-900/40 border border-red-500/50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110 shadow-lg backdrop-blur-md" title="Eliminar Objeto">
+                  <!-- Botón Eliminar Global -->
+                  <button onclick="event.stopPropagation(); promptDelete('item', '${item.id}', '${esc(item.name)}')" class="absolute top-3 left-3 z-30 w-8 h-8 rounded-full bg-red-900/40 border border-red-500/50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110 shadow-lg backdrop-blur-md" title="Eliminar Objeto Global">
                     <i class="ph ph-trash"></i>
                   </button>
                 </div>
@@ -514,7 +639,7 @@
     }
 
 
-    // CONTROLADORES DE EVENTOS UI (Asignados al objeto Window para el HTML en línea)
+    // CONTROLADORES DE EVENTOS UI
     
     window.openCollection = (id) => {
       window.appState.activeCollectionId = id;
@@ -535,7 +660,6 @@
     window.openModal = (modalId) => {
       const el = document.getElementById(modalId);
       el.classList.remove('hidden-force');
-      // Autofocus al primer input
       setTimeout(() => {
         const input = el.querySelector('input');
         if(input) input.focus();
@@ -561,9 +685,10 @@
     window.promptDelete = (type, id, name) => {
       window.appState.deleteTarget = { type, id, name };
       
-      let msgHTML = `<p>¿Estás seguro de que quieres eliminar <strong class="text-white font-bold">${esc(name)}</strong>?</p>`;
-      if (type === 'collection') msgHTML += `<p class="mt-2 text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20">Se borrarán también todas sus secciones y objetos.</p>`;
-      if (type === 'section') msgHTML += `<p class="mt-2 text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20">Se borrarán también todos los objetos dentro de ella.</p>`;
+      let msgHTML = `<p>¿Estás seguro de que quieres eliminar <strong class="text-white font-bold">${esc(name)}</strong> de la <strong class="text-red-400">Base de Datos Global</strong>?</p>`;
+      if (type === 'collection') msgHTML += `<p class="mt-2 text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20">Se borrará para TODOS los usuarios, junto a sus secciones y objetos.</p>`;
+      if (type === 'section') msgHTML += `<p class="mt-2 text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20">Se borrará para TODOS los usuarios, junto a sus objetos.</p>`;
+      if (type === 'item') msgHTML += `<p class="mt-2 text-red-400 bg-red-900/20 p-2 rounded border border-red-500/20">Se borrará para TODOS los usuarios.</p>`;
       
       document.getElementById('delete-message').innerHTML = msgHTML;
       window.openModal('modal-delete');
@@ -572,7 +697,7 @@
 
     // LOGICA DE FIREBASE (Escrituras)
 
-    // Formulario Crear Colección
+    // Crear Colección Pública
     document.getElementById('form-collection').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = window.appState.user;
@@ -580,12 +705,12 @@
       const name = document.getElementById('collection-name').value.trim();
       if (!name) return;
 
-      const newRef = doc(collection(db, 'artifacts', appId, 'users', user.uid, 'collections'));
-      await setDoc(newRef, { name, createdAt: new Date().toISOString() });
+      const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'collections'));
+      await setDoc(newRef, { name, createdBy: user.uid, createdAt: new Date().toISOString() });
       window.closeModal('modal-collection');
     });
 
-    // Formulario Crear Sección
+    // Crear Sección Pública
     document.getElementById('form-section').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = window.appState.user;
@@ -595,12 +720,12 @@
       const name = document.getElementById('section-name').value.trim();
       if (!name) return;
 
-      const newRef = doc(collection(db, 'artifacts', appId, 'users', user.uid, 'sections'));
-      await setDoc(newRef, { name, collectionId: colId, createdAt: new Date().toISOString() });
+      const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'sections'));
+      await setDoc(newRef, { name, collectionId: colId, createdBy: user.uid, createdAt: new Date().toISOString() });
       window.closeModal('modal-section');
     });
 
-    // Formulario Crear Objeto
+    // Crear Objeto Público
     document.getElementById('form-item').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = window.appState.user;
@@ -613,21 +738,27 @@
       const img = document.getElementById('item-url').value.trim();
       if (!name) return;
 
-      const newRef = doc(collection(db, 'artifacts', appId, 'users', user.uid, 'items'));
+      const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'items'));
       await setDoc(newRef, {
         name, description: desc, imageUrl: img,
         sectionId: secId, collectionId: colId,
-        isOwned: false, createdAt: new Date().toISOString()
+        createdBy: user.uid, createdAt: new Date().toISOString()
       });
       window.closeModal('modal-item');
     });
 
-    // Toggle Item Owned
-    window.toggleItem = async (itemId, currentStatus) => {
+    // Marcar Objeto Privado (Progreso personal)
+    window.toggleItem = async (itemId, isCurrentlyOwned) => {
       const user = window.appState.user;
       if (!user) return;
-      const itemRef = doc(db, 'artifacts', appId, 'users', user.uid, 'items', itemId);
-      await updateDoc(itemRef, { isOwned: !currentStatus });
+      
+      const ref = doc(db, 'artifacts', appId, 'users', user.uid, 'owned_items', itemId);
+      
+      if (isCurrentlyOwned) {
+        await deleteDoc(ref); // Ya no lo tengo
+      } else {
+        await setDoc(ref, { ownedAt: new Date().toISOString() }); // Ahora lo tengo
+      }
     };
 
     // Confirmar Borrado Global
@@ -637,28 +768,26 @@
       if (!user || !target) return;
 
       try {
-        const uid = user.uid;
         if (target.type === 'item') {
-          await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'items', target.id));
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', target.id));
         } 
         else if (target.type === 'section') {
-          // Borrar items hijos visualmente/rapido (En prod real Cloud Functions es mejor, pero esto es SPA)
           const itemsToDelete = window.appState.items.filter(i => i.sectionId === target.id);
           for (let itm of itemsToDelete) {
-             await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'items', itm.id));
+             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', itm.id));
           }
-          await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'sections', target.id));
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sections', target.id));
         } 
         else if (target.type === 'collection') {
           const itemsToDelete = window.appState.items.filter(i => i.collectionId === target.id);
           for (let itm of itemsToDelete) {
-             await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'items', itm.id));
+             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', itm.id));
           }
           const secsToDelete = window.appState.sections.filter(s => s.collectionId === target.id);
           for (let sec of secsToDelete) {
-             await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'sections', sec.id));
+             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'sections', sec.id));
           }
-          await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'collections', target.id));
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'collections', target.id));
           window.appState.activeCollectionId = null;
         }
       } catch (err) {
@@ -668,7 +797,7 @@
       window.closeModal('modal-delete');
     };
 
-    // Iniciar Aplicación
+    // Iniciar Aplicación al cargar
     window.onload = initApp;
 
   </script>
