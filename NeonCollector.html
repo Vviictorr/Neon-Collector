@@ -148,12 +148,16 @@
   <div id="modal-collection" class="hidden-force fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 glass-modal transition-opacity">
     <div class="w-full max-w-md bg-[#0f172a]/80 border border-white/20 shadow-[0_0_40px_rgba(0,229,255,0.1)] p-6 rounded-2xl">
       <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold tracking-wide text-white">Crear Colección</h3>
+        <h3 id="modal-collection-title" class="text-xl font-bold tracking-wide text-white">Crear Colección</h3>
         <button onclick="closeModal('modal-collection')" class="text-gray-400 hover:text-white transition-colors bg-white/5 p-1 rounded-full"><i class="ph ph-x text-xl"></i></button>
       </div>
       <form id="form-collection" class="flex flex-col gap-4">
         <input id="collection-name" type="text" required placeholder="Nombre (Ej. Latas de Monster)" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all placeholder-gray-600" />
-        <button type="submit" class="mt-2 w-full bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-black font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all">Generar Colección</button>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500"><i class="ph ph-image text-lg"></i></div>
+          <input id="collection-url" type="url" placeholder="URL de la imagen de portada (Opcional)" class="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-white focus:outline-none focus:border-cyan-400 transition-all placeholder-gray-600" />
+        </div>
+        <button id="btn-submit-collection" type="submit" class="mt-2 w-full bg-gradient-to-r from-cyan-600 to-cyan-400 hover:from-cyan-500 hover:to-cyan-300 text-black font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(0,229,255,0.4)] transition-all">Generar Colección</button>
       </form>
     </div>
   </div>
@@ -176,7 +180,7 @@
   <div id="modal-item" class="hidden-force fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 glass-modal transition-opacity">
     <div class="w-full max-w-md bg-[#0f172a]/80 border border-white/20 shadow-[0_0_40px_rgba(0,229,255,0.1)] p-6 rounded-2xl">
       <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold tracking-wide text-white">Añadir Objeto</h3>
+        <h3 id="modal-item-title" class="text-xl font-bold tracking-wide text-white">Añadir Objeto</h3>
         <button onclick="closeModal('modal-item')" class="text-gray-400 hover:text-white transition-colors bg-white/5 p-1 rounded-full"><i class="ph ph-x text-xl"></i></button>
       </div>
       <form id="form-item" class="flex flex-col gap-4">
@@ -186,7 +190,7 @@
           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500"><i class="ph ph-image text-lg"></i></div>
           <input id="item-url" type="url" placeholder="URL de la imagen (Opcional)" class="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-cyan-400 transition-all placeholder-gray-600" />
         </div>
-        <button type="submit" class="mt-2 w-full bg-white text-black hover:bg-gray-200 font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all">Guardar Objeto</button>
+        <button id="btn-submit-item" type="submit" class="mt-2 w-full bg-white text-black hover:bg-gray-200 font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all">Guardar Objeto</button>
       </form>
     </div>
   </div>
@@ -241,6 +245,7 @@
       activeCollectionId: null,
       filterMode: 'all', // 'all', 'owned', 'missing'
       deleteTarget: null, // { type, id, name }
+      editTarget: null, // { type, id }
       targetSectionId: null, // Para saber dónde añadir el item nuevo
       listeners: [] // Guardar desuscripciones
     };
@@ -464,18 +469,26 @@
           const ownedCount = colItems.filter(i => ownedItems.has(i.id)).length;
           const progress = colItems.length > 0 ? (ownedCount / colItems.length) * 100 : 0;
           
+          const colBg = col.imageUrl ? `<div class="absolute inset-0 z-0"><img src="${esc(col.imageUrl)}" class="w-full h-full object-cover opacity-20 group-hover:opacity-40 transition-opacity duration-500" /></div>` : '';
+
           html += `
             <div onclick="openCollection('${col.id}')" class="group cursor-pointer bg-[#101018]/80 hover:bg-[#1a1a2e]/90 border border-white/5 hover:border-purple-400/50 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)] relative overflow-hidden flex flex-col">
-              <div class="absolute top-0 left-0 h-1.5 bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500" style="width: ${progress}%"></div>
+              ${colBg}
+              <div class="absolute top-0 left-0 h-1.5 bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 z-10" style="width: ${progress}%"></div>
               
-              <div class="flex justify-between items-start mb-4">
-                <h3 class="text-xl font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1 pr-2">${esc(col.name)}</h3>
-                <button onclick="event.stopPropagation(); promptDelete('collection', '${col.id}', '${esc(col.name)}')" class="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/30 opacity-0 group-hover:opacity-100 relative z-20">
-                  <i class="ph ph-trash"></i>
-                </button>
+              <div class="flex justify-between items-start mb-4 relative z-10">
+                <h3 class="text-xl font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1 pr-2 drop-shadow-md">${esc(col.name)}</h3>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onclick="event.stopPropagation(); promptEditCollection('${col.id}', '${encodeURIComponent(col.name)}', '${encodeURIComponent(col.imageUrl || '')}')" class="p-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-gray-400 hover:text-cyan-400 transition-colors border border-transparent hover:border-cyan-500/30">
+                    <i class="ph ph-pencil-simple"></i>
+                  </button>
+                  <button onclick="event.stopPropagation(); promptDelete('collection', '${col.id}', '${encodeURIComponent(col.name)}')" class="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/30">
+                    <i class="ph ph-trash"></i>
+                  </button>
+                </div>
               </div>
 
-              <div class="mt-auto flex justify-between items-end text-sm">
+              <div class="mt-auto flex justify-between items-end text-sm relative z-10">
                 <span class="text-gray-400 bg-white/5 px-2 py-1 rounded-md">${colItems.length} Objetos Globales</span>
                 <span class="text-cyan-400 font-mono font-bold tracking-wider">${Math.round(progress)}% Tienes</span>
               </div>
@@ -560,7 +573,7 @@
                 </div>
                 
                 <div class="flex gap-2">
-                   <button onclick="promptDelete('section', '${section.id}', '${esc(section.name)}')" class="p-2 flex items-center gap-2 text-gray-500 hover:text-red-400 transition-colors bg-white/5 hover:bg-red-500/10 rounded-lg border border-transparent hover:border-red-500/30" title="Borrar Sección Global">
+                   <button onclick="promptDelete('section', '${section.id}', '${encodeURIComponent(section.name)}')" class="p-2 flex items-center gap-2 text-gray-500 hover:text-red-400 transition-colors bg-white/5 hover:bg-red-500/10 rounded-lg border border-transparent hover:border-red-500/30" title="Borrar Sección Global">
                     <i class="ph ph-trash"></i>
                   </button>
                   <button onclick="openAddItem('${section.id}')" class="px-3 py-2 flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition-colors bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg border border-cyan-500/20 hover:border-cyan-400/50 shadow-[0_0_10px_rgba(0,229,255,0.1)] font-medium text-sm">
@@ -584,10 +597,10 @@
 
               const isOwnedClasses = isOwned 
                 ? 'bg-[#101525] border-cyan-400/60 shadow-[0_0_20px_rgba(0,229,255,0.2)] hover:shadow-[0_0_35px_rgba(0,229,255,0.4)] hover:-translate-y-2' 
-                : 'bg-black/60 border-white/10 grayscale-[0.9] opacity-60 hover:grayscale-0 hover:opacity-100 hover:-translate-y-1';
+                : 'bg-[#101018]/80 border-white/10 grayscale-[0.4] opacity-80 hover:grayscale-0 hover:opacity-100 hover:-translate-y-1';
               
               const imgContent = item.imageUrl 
-                ? `<img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" class="item-image w-full h-full object-cover object-center transition-transform duration-700" loading="lazy" onerror="this.outerHTML='<div class=\\'w-full h-full flex items-center justify-center text-red-500\\'><i class=\\'ph ph-image-broken text-3xl\\'></i></div>'" />` 
+                ? `<img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" class="item-image w-full h-full object-contain p-2 object-center transition-transform duration-700 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" loading="lazy" onerror="this.outerHTML='<div class=\\'w-full h-full flex items-center justify-center text-red-500\\'><i class=\\'ph ph-image-broken text-3xl\\'></i></div>'" />` 
                 : `<div class="w-full h-full flex flex-col items-center justify-center relative">
                     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/40 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <i class="ph ph-image text-5xl text-cyan-500/50 drop-shadow-[0_0_15px_rgba(0,229,255,0.8)] item-image transition-transform duration-500"></i>
@@ -596,17 +609,17 @@
                    
               const checkIcon = isOwned 
                 ? `<div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-500 bg-cyan-400/20 border-cyan-400 text-cyan-400 shadow-[0_0_20px_rgba(0,229,255,0.6)] scale-110"><i class="ph-fill ph-check-circle text-xl drop-shadow-lg"></i></div>`
-                : `<div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-500 bg-black/60 border-gray-600 text-gray-600 group-hover:border-cyan-400/40 group-hover:text-cyan-400/40"><i class="ph ph-circle text-xl"></i></div>`;
+                : `<div class="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-500 bg-black/60 border-gray-600 text-gray-400 group-hover:border-cyan-400/40 group-hover:text-cyan-400/40"><i class="ph ph-circle text-xl"></i></div>`;
 
-              const gradientBg = isOwned ? 'from-[#050510] via-[#050510]/80 to-transparent' : 'from-black via-black/90 to-transparent';
-              const textTitleCol = isOwned ? 'text-white drop-shadow-md' : 'text-gray-400';
+              const gradientBg = isOwned ? 'from-[#050510]/95 via-[#050510]/60 to-transparent' : 'from-[#0a0a0f]/95 via-[#0a0a0f]/60 to-transparent';
+              const textTitleCol = isOwned ? 'text-white drop-shadow-md' : 'text-gray-300';
 
               html += `
                 <div onclick="toggleItem('${item.id}', ${isOwned})" class="item-card relative group rounded-2xl overflow-hidden cursor-pointer border backdrop-blur-sm aspect-[2/3] flex flex-col ${isOwnedClasses}">
                   <!-- Contenedor Imagen -->
-                  <div class="flex-1 relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
+                  <div class="flex-1 relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-gray-900/50 to-black/80">
                     ${imgContent}
-                    <div class="absolute inset-0 bg-gradient-to-t ${gradientBg}"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t ${gradientBg} pointer-events-none"></div>
                   </div>
                   
                   <!-- Info -->
@@ -620,10 +633,15 @@
                     ${checkIcon}
                   </div>
 
-                  <!-- Botón Eliminar Global -->
-                  <button onclick="event.stopPropagation(); promptDelete('item', '${item.id}', '${esc(item.name)}')" class="absolute top-3 left-3 z-30 w-8 h-8 rounded-full bg-red-900/40 border border-red-500/50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white hover:scale-110 shadow-lg backdrop-blur-md" title="Eliminar Objeto Global">
-                    <i class="ph ph-trash"></i>
-                  </button>
+                  <!-- Botones de Acción Globales -->
+                  <div class="absolute top-3 left-3 z-30 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); promptEditItem('${item.id}', '${encodeURIComponent(item.name)}', '${encodeURIComponent(item.description || '')}', '${encodeURIComponent(item.imageUrl || '')}')" class="w-8 h-8 rounded-full bg-cyan-900/40 border border-cyan-500/50 text-cyan-400 flex items-center justify-center transition-all hover:bg-cyan-500 hover:text-white hover:scale-110 shadow-lg backdrop-blur-md" title="Editar Objeto Global">
+                      <i class="ph ph-pencil-simple"></i>
+                    </button>
+                    <button onclick="event.stopPropagation(); promptDelete('item', '${item.id}', '${encodeURIComponent(item.name)}')" class="w-8 h-8 rounded-full bg-red-900/40 border border-red-500/50 text-red-400 flex items-center justify-center transition-all hover:bg-red-500 hover:text-white hover:scale-110 shadow-lg backdrop-blur-md" title="Eliminar Objeto Global">
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </div>
                 </div>
               `;
             });
@@ -668,13 +686,20 @@
 
     window.closeModal = (modalId) => {
       document.getElementById(modalId).classList.add('hidden-force');
-      if (modalId === 'modal-collection') document.getElementById('form-collection').reset();
+      if (modalId === 'modal-collection') {
+        document.getElementById('form-collection').reset();
+        document.getElementById('modal-collection-title').innerText = 'Crear Colección';
+        document.getElementById('btn-submit-collection').innerText = 'Generar Colección';
+      }
       if (modalId === 'modal-section') document.getElementById('form-section').reset();
       if (modalId === 'modal-item') {
         document.getElementById('form-item').reset();
+        document.getElementById('modal-item-title').innerText = 'Añadir Objeto';
+        document.getElementById('btn-submit-item').innerText = 'Guardar Objeto';
         window.appState.targetSectionId = null;
       }
       if (modalId === 'modal-delete') window.appState.deleteTarget = null;
+      window.appState.editTarget = null;
     };
 
     window.openAddItem = (sectionId) => {
@@ -682,7 +707,36 @@
       window.openModal('modal-item');
     };
 
-    window.promptDelete = (type, id, name) => {
+    window.promptEditCollection = (id, encName, encImg) => {
+      const name = decodeURIComponent(encName);
+      const img = decodeURIComponent(encImg);
+      window.appState.editTarget = { type: 'collection', id };
+      
+      document.getElementById('modal-collection-title').innerText = 'Editar Colección';
+      document.getElementById('btn-submit-collection').innerText = 'Guardar Cambios';
+      document.getElementById('collection-name').value = name;
+      document.getElementById('collection-url').value = img;
+      
+      window.openModal('modal-collection');
+    };
+
+    window.promptEditItem = (id, encName, encDesc, encImg) => {
+      const name = decodeURIComponent(encName);
+      const desc = decodeURIComponent(encDesc);
+      const img = decodeURIComponent(encImg);
+      window.appState.editTarget = { type: 'item', id };
+      
+      document.getElementById('modal-item-title').innerText = 'Editar Objeto';
+      document.getElementById('btn-submit-item').innerText = 'Guardar Cambios';
+      document.getElementById('item-name').value = name;
+      document.getElementById('item-desc').value = desc;
+      document.getElementById('item-url').value = img;
+      
+      window.openModal('modal-item');
+    };
+
+    window.promptDelete = (type, id, encName) => {
+      const name = decodeURIComponent(encName);
       window.appState.deleteTarget = { type, id, name };
       
       let msgHTML = `<p>¿Estás seguro de que quieres eliminar <strong class="text-white font-bold">${esc(name)}</strong> de la <strong class="text-red-400">Base de Datos Global</strong>?</p>`;
@@ -703,10 +757,16 @@
       const user = window.appState.user;
       if (!user) return;
       const name = document.getElementById('collection-name').value.trim();
+      const imageUrl = document.getElementById('collection-url').value.trim();
       if (!name) return;
 
-      const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'collections'));
-      await setDoc(newRef, { name, createdBy: user.uid, createdAt: new Date().toISOString() });
+      if (window.appState.editTarget?.type === 'collection') {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'collections', window.appState.editTarget.id);
+        await updateDoc(docRef, { name, imageUrl });
+      } else {
+        const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'collections'));
+        await setDoc(newRef, { name, imageUrl, createdBy: user.uid, createdAt: new Date().toISOString() });
+      }
       window.closeModal('modal-collection');
     });
 
@@ -729,21 +789,27 @@
     document.getElementById('form-item').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = window.appState.user;
-      const colId = window.appState.activeCollectionId;
-      const secId = window.appState.targetSectionId;
-      if (!user || !colId || !secId) return;
-
+      
       const name = document.getElementById('item-name').value.trim();
       const desc = document.getElementById('item-desc').value.trim();
       const img = document.getElementById('item-url').value.trim();
       if (!name) return;
 
-      const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'items'));
-      await setDoc(newRef, {
-        name, description: desc, imageUrl: img,
-        sectionId: secId, collectionId: colId,
-        createdBy: user.uid, createdAt: new Date().toISOString()
-      });
+      if (window.appState.editTarget?.type === 'item') {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'items', window.appState.editTarget.id);
+        await updateDoc(docRef, { name, description: desc, imageUrl: img });
+      } else {
+        const colId = window.appState.activeCollectionId;
+        const secId = window.appState.targetSectionId;
+        if (!user || !colId || !secId) return;
+
+        const newRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'items'));
+        await setDoc(newRef, {
+          name, description: desc, imageUrl: img,
+          sectionId: secId, collectionId: colId,
+          createdBy: user.uid, createdAt: new Date().toISOString()
+        });
+      }
       window.closeModal('modal-item');
     });
 
